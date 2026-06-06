@@ -2,5 +2,6 @@ __pycache__/
 *.pyc
 data/uploads/*
 data/plots/*
+data/manifest.json
 *.pdf
 image *.png

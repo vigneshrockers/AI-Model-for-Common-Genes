@@ -22,6 +22,12 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 PLOT_DIR.mkdir(parents=True, exist_ok=True)
 
 
+@app.errorhandler(Exception)
+def handle_error(error):
+    app.logger.exception(error)
+    return jsonify({"error": "Server error. Check the deployment logs for details."}), 500
+
+
 def allowed_file(filename):
     return Path(filename).suffix.lower() in ALLOWED_EXTENSIONS
 
@@ -34,7 +40,18 @@ def load_manifest():
     path = manifest_path()
     if not path.exists():
         return []
-    return json.loads(path.read_text(encoding="utf-8"))
+    files = json.loads(path.read_text(encoding="utf-8"))
+    available = []
+    changed = False
+    for item in files:
+        stored_name = item.get("storedName")
+        if stored_name and (UPLOAD_DIR / stored_name).exists():
+            available.append(item)
+        else:
+            changed = True
+    if changed:
+        save_manifest(available)
+    return available
 
 
 def save_manifest(files):

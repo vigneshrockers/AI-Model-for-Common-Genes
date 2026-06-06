@@ -114,6 +114,15 @@ async function loadFiles() {
   renderFiles();
 }
 
+async function readJson(response) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text.includes("<!doctype") ? "Server returned an HTML error page. Check the deployment logs." : text };
+  }
+}
+
 els.uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData();
@@ -121,7 +130,7 @@ els.uploadForm.addEventListener("submit", async (event) => {
   els.uploadStatus.textContent = "Uploading...";
 
   const response = await fetch("/api/upload", { method: "POST", body: formData });
-  const data = await response.json();
+  const data = await readJson(response);
   if (!response.ok) {
     els.uploadStatus.textContent = data.error || "Upload failed";
     return;
@@ -151,7 +160,7 @@ els.analyzeBtn.addEventListener("click", async () => {
       pThreshold: Number(els.pThreshold.value),
     }),
   });
-  const data = await response.json();
+  const data = await readJson(response);
 
   if (!response.ok) {
     els.resultStatus.textContent = data.error || "Analysis failed";
