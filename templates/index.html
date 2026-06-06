@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Model for Common Genes</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Differential Expression Analysis</p>
+            <h1>AI Model for Common Genes</h1>
+          </div>
+          <button id="analyzeBtn" class="primary" type="button">Analyze</button>
+        </header>
+
+        <section class="control-grid">
+          <form id="uploadForm" class="panel upload-panel">
+            <div class="panel-title">
+              <h2>Upload Sheets</h2>
+              <span id="uploadStatus">Ready</span>
+            </div>
+            <label class="dropzone">
+              <input id="fileInput" type="file" name="files" multiple accept=".xlsx,.xls,.csv,.tsv">
+              <strong>Select Excel sheets</strong>
+              <span>Multiple .xlsx, .xls, .csv, or .tsv files</span>
+            </label>
+            <button class="secondary" type="submit">Upload and Store</button>
+          </form>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h2>Sheets Used</h2>
+              <span id="sheetCount">0 selected</span>
+            </div>
+            <div id="fileList" class="file-list"></div>
+          </section>
+
+          <section class="panel parameters">
+            <div class="panel-title">
+              <h2>Filter Parameters</h2>
+              <span>Column dropdowns</span>
+            </div>
+            <label>Intersection key<select id="keyColumn"></select></label>
+            <label>logFC column<select id="fcColumn"></select></label>
+            <label>P-value column<select id="pColumn"></select></label>
+            <div class="thresholds">
+              <label>|logFC| at least<input id="fcThreshold" type="number" min="0" step="0.1" value="2"></label>
+              <label>P-value below<input id="pThreshold" type="number" min="0" max="1" step="0.001" value="0.05"></label>
+            </div>
+          </section>
+        </section>
+
+        <section class="results-grid">
+          <section class="panel table-panel">
+            <div class="panel-title">
+              <h2>Common Genes Summary</h2>
+              <span id="resultStatus">Upload sheets to begin</span>
+            </div>
+            <div class="table-wrap">
+              <table class="metric-table">
+                <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+                <tbody id="metricBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel table-panel">
+            <div class="panel-title">
+              <h2>Common Gene Table</h2>
+              <span id="commonCount">0 genes</span>
+            </div>
+            <div class="table-wrap">
+              <table id="commonTable">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel plot-panel">
+          <div class="panel-title">
+            <h2>R Volcano Plot</h2>
+            <span id="plotStatus">Waiting for analysis</span>
+          </div>
+          <div class="plot-stage">
+            <img id="plotImage" alt="Volcano plot generated with R">
+          </div>
+        </section>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
