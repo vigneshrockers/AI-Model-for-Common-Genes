@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import subprocess
 import uuid
@@ -11,15 +12,21 @@ from werkzeug.utils import secure_filename
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data"))
 UPLOAD_DIR = DATA_DIR / "uploads"
 PLOT_DIR = DATA_DIR / "plots"
 R_SCRIPT = BASE_DIR / "volcano_plot.R"
 ALLOWED_EXTENSIONS = {".xlsx", ".xls", ".csv", ".tsv"}
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 PLOT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@app.errorhandler(413)
+def handle_large_upload(error):
+    return jsonify({"error": "Upload is too large. Keep the total upload under 100 MB."}), 413
 
 
 @app.errorhandler(Exception)
@@ -174,6 +181,21 @@ def index():
     return render_template("index.html")
 
 
+@app.get("/api/health")
+def health():
+    rscript = find_rscript()
+    return jsonify(
+        {
+            "status": "ok",
+            "dataDir": str(DATA_DIR),
+            "uploadDirExists": UPLOAD_DIR.exists(),
+            "plotDirExists": PLOT_DIR.exists(),
+            "rscriptFound": bool(rscript),
+            "rscriptPath": rscript,
+        }
+    )
+
+
 @app.get("/api/files")
 def files():
     return jsonify({"files": load_manifest()})
@@ -188,9 +210,14 @@ def upload():
     manifest = load_manifest()
     used_labels = {item["label"] for item in manifest}
     added = []
+    errors = []
 
     for file in uploaded:
-        if not file.filename or not allowed_file(file.filename):
+        if not file.filename:
+            continue
+
+        if not allowed_file(file.filename):
+            errors.append(f"{file.filename}: unsupported file type")
             continue
 
         original = secure_filename(file.filename)
@@ -203,7 +230,8 @@ def upload():
             df = read_table(saved_path)
         except Exception as exc:
             saved_path.unlink(missing_ok=True)
-            return jsonify({"error": f"Could not read {original}: {exc}"}), 400
+            errors.append(f"{original}: could not read file ({exc})")
+            continue
 
         label = unique_label(short_label(original), used_labels)
         item = {
@@ -218,10 +246,13 @@ def upload():
         added.append(item)
 
     if not added:
-        return jsonify({"error": "No supported files were uploaded."}), 400
+        message = "No supported files were uploaded."
+        if errors:
+            message = "Upload failed: " + " | ".join(errors)
+        return jsonify({"error": message, "errors": errors}), 400
 
     save_manifest(manifest)
-    return jsonify({"files": manifest, "added": added})
+    return jsonify({"files": manifest, "added": added, "errors": errors})
 
 
 @app.post("/api/analyze")
@@ -271,6 +302,15 @@ def analyze():
         filtered_frames[file_id] = filtered
 
         plot_piece = work[["_key", "_logfc", "_pvalue"]].copy()
+        if "external_gene_name" in work.columns:
+            plot_piece["gene_label"] = work["external_gene_name"].astype(str).str.strip()
+        else:
+            plot_piece["gene_label"] = plot_piece["_key"]
+        plot_piece["gene_label"] = plot_piece["gene_label"].replace(
+            {"": None, "nan": None, "NaN": None, "NA": None, "None": None}
+        )
+        plot_piece["gene_label"] = plot_piece["gene_label"].where(plot_piece["gene_label"] != "", plot_piece["_key"])
+        plot_piece["gene_label"] = plot_piece["gene_label"].fillna(plot_piece["_key"])
         plot_piece["dataset"] = item["label"]
         plot_frames.append(plot_piece)
 
@@ -293,7 +333,6 @@ def analyze():
     plot_status = "R plot was not generated."
     if plot_frames:
         plot_input = pd.concat(plot_frames, ignore_index=True)
-        plot_input["is_common"] = plot_input["_key"].isin(common_keys)
         plot_id = uuid.uuid4().hex
         csv_path = PLOT_DIR / f"{plot_id}.csv"
         png_path = PLOT_DIR / f"{plot_id}.png"

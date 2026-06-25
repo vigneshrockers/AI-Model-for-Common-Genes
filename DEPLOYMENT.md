@@ -30,6 +30,12 @@ Open:
 http://127.0.0.1:5050
 ```
 
+Check health:
+
+```text
+http://127.0.0.1:5050/api/health
+```
+
 ## Docker deployment
 
 Build:
@@ -45,3 +51,15 @@ docker run -p 5050:5050 common-genes-ai
 ```
 
 Deploy the same Dockerfile to a container host. The Dockerfile installs Python packages and `r-base`, so the R volcano plot can run in production.
+
+On Render, set the persistent disk mount path to:
+
+```text
+/app/data
+```
+
+You can also add this environment variable:
+
+```text
+DATA_DIR=/app/data
+```

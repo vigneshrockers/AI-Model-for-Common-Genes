@@ -60,7 +60,7 @@ function renderFiles() {
       <input data-file-check type="checkbox" value="${file.id}" checked>
       <span>
         <strong>${file.label}</strong>
-        <small>${file.filename} · ${file.rows.toLocaleString()} rows</small>
+        <small>${file.filename} - ${file.rows.toLocaleString()} rows</small>
       </span>
     `;
     els.fileList.append(label);
@@ -109,7 +109,11 @@ function renderCommonTable(rows) {
 
 async function loadFiles() {
   const response = await fetch("/api/files");
-  const data = await response.json();
+  const data = await readJson(response);
+  if (!response.ok) {
+    els.uploadStatus.textContent = data.error || "Could not load stored files";
+    return;
+  }
   state.files = data.files || [];
   renderFiles();
 }
@@ -137,7 +141,8 @@ els.uploadForm.addEventListener("submit", async (event) => {
   }
 
   state.files = data.files;
-  els.uploadStatus.textContent = `${data.added.length} uploaded`;
+  const warningText = data.errors?.length ? ` (${data.errors.length} skipped)` : "";
+  els.uploadStatus.textContent = `${data.added.length} uploaded${warningText}`;
   els.fileInput.value = "";
   renderFiles();
 });
@@ -165,6 +170,7 @@ els.analyzeBtn.addEventListener("click", async () => {
   if (!response.ok) {
     els.resultStatus.textContent = data.error || "Analysis failed";
     els.plotStatus.textContent = "Plot not generated";
+    renderMetrics([{ metric: "Error", value: data.error || "Analysis failed" }]);
     return;
   }
 
