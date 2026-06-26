@@ -85,7 +85,10 @@
         <section class="panel plot-panel">
           <div class="panel-title">
             <h2>R Volcano Plot</h2>
-            <span id="plotStatus">Waiting for analysis</span>
+            <div class="plot-actions">
+              <a id="downloadPlot" class="download-btn" href="#" download="volcano_plot.png" hidden>Download PNG</a>
+              <span id="plotStatus">Waiting for analysis</span>
+            </div>
           </div>
           <div class="plot-stage">
             <img id="plotImage" alt="Volcano plot generated with R">

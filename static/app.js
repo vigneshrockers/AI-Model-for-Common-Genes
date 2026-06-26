@@ -26,6 +26,7 @@ const els = {
   commonCount: document.querySelector("#commonCount"),
   plotImage: document.querySelector("#plotImage"),
   plotStatus: document.querySelector("#plotStatus"),
+  downloadPlot: document.querySelector("#downloadPlot"),
 };
 
 function allColumns() {
@@ -54,16 +55,19 @@ function selectedFileIds() {
 function renderFiles() {
   els.fileList.innerHTML = "";
   state.files.forEach((file) => {
-    const label = document.createElement("label");
-    label.className = "file-row";
-    label.innerHTML = `
-      <input data-file-check type="checkbox" value="${file.id}" checked>
-      <span>
-        <strong>${file.label}</strong>
-        <small>${file.filename} - ${file.rows.toLocaleString()} rows</small>
-      </span>
+    const row = document.createElement("div");
+    row.className = "file-row";
+    row.innerHTML = `
+      <label class="file-check">
+        <input data-file-check type="checkbox" value="${file.id}" checked>
+        <span>
+          <strong>${file.label}</strong>
+          <small>${file.filename} - ${file.rows.toLocaleString()} rows</small>
+        </span>
+      </label>
+      <button class="delete-file" type="button" data-delete-file="${file.id}" title="Delete uploaded sheet">Delete</button>
     `;
-    els.fileList.append(label);
+    els.fileList.append(row);
   });
   updateSheetCount();
 
@@ -149,9 +153,33 @@ els.uploadForm.addEventListener("submit", async (event) => {
 
 els.fileList.addEventListener("change", updateSheetCount);
 
+els.fileList.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-delete-file]");
+  if (!button) return;
+
+  const fileId = button.dataset.deleteFile;
+  button.disabled = true;
+  button.textContent = "Deleting...";
+
+  const response = await fetch(`/api/files/${fileId}`, { method: "DELETE" });
+  const data = await readJson(response);
+  if (!response.ok) {
+    els.uploadStatus.textContent = data.error || "Delete failed";
+    button.disabled = false;
+    button.textContent = "Delete";
+    return;
+  }
+
+  state.files = data.files || [];
+  els.uploadStatus.textContent = "Sheet deleted";
+  renderFiles();
+});
+
 els.analyzeBtn.addEventListener("click", async () => {
   els.resultStatus.textContent = "Analyzing...";
   els.plotStatus.textContent = "Preparing R plot...";
+  els.downloadPlot.hidden = true;
+  els.downloadPlot.removeAttribute("href");
 
   const response = await fetch("/api/analyze", {
     method: "POST",
@@ -182,6 +210,8 @@ els.analyzeBtn.addEventListener("click", async () => {
   if (data.plotUrl) {
     els.plotImage.src = `${data.plotUrl}?t=${Date.now()}`;
     els.plotImage.hidden = false;
+    els.downloadPlot.href = data.plotUrl;
+    els.downloadPlot.hidden = false;
   }
 });
 

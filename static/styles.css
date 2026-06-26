@@ -152,15 +152,36 @@ button {
   overflow: auto;
 }
 
-.file-row {
+.file-row,
+.file-check {
   display: grid;
-  grid-template-columns: 18px 1fr;
   gap: 10px;
   align-items: start;
+}
+
+.file-row {
+  grid-template-columns: 1fr auto;
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #fbfdff;
+}
+
+.file-check {
+  grid-template-columns: 18px 1fr;
+}
+
+.delete-file {
+  min-width: 68px;
+  padding: 7px 9px;
+  color: #9d261d;
+  border: 1px solid #f0b9b4;
+  background: #fff5f4;
+}
+
+.delete-file:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .parameters {
@@ -234,8 +255,25 @@ td:last-child {
   margin-top: 14px;
 }
 
+.plot-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.download-btn {
+  padding: 8px 11px;
+  color: #fff;
+  text-decoration: none;
+  background: var(--accent);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .plot-stage {
-  min-height: 420px;
+  min-height: 640px;
   display: grid;
   place-items: center;
   overflow: auto;

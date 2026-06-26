@@ -201,6 +201,29 @@ def files():
     return jsonify({"files": load_manifest()})
 
 
+@app.delete("/api/files/<file_id>")
+def delete_file(file_id):
+    manifest = load_manifest()
+    remaining = []
+    deleted = None
+
+    for item in manifest:
+        if item["id"] == file_id:
+            deleted = item
+        else:
+            remaining.append(item)
+
+    if not deleted:
+        return jsonify({"error": "Uploaded sheet was not found."}), 404
+
+    stored_name = deleted.get("storedName")
+    if stored_name:
+        (UPLOAD_DIR / stored_name).unlink(missing_ok=True)
+
+    save_manifest(remaining)
+    return jsonify({"files": remaining, "deleted": deleted})
+
+
 @app.post("/api/upload")
 def upload():
     uploaded = request.files.getlist("files")
